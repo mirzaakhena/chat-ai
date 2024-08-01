@@ -1,0 +1,3 @@
+write file abc.txt contain 10 random animals name
+write file pqr.txt contain helloworld and read file abc.txt
+write file main.go contain a sample server application publish helloworld API

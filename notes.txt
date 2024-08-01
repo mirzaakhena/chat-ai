@@ -1,0 +1,37 @@
+---
+
+Bagaimana AI Agent Swarm bekerja ?
+
+ketika user meminta kepada agent
+ada 2 respon dari agent :
+- langsung menjawab berdasarkan knowlegde yg dimilikinya
+- menjawab dengan tool call
+
+
+(misal contoh user meminta agent untuk membuatkan file)
+
+Saat agent menjawab dengan tool call
+
+(agent meresponse dengan tool writeFile filename.txt with content helloworld)
+
+system akan membantu agent untuk memanggilkan tool tertentu yang sudah disediakan
+
+(system memanggil function writeFile("filename.txt", "helloworld") dan menghasilkan response success)
+
+kemudian hasil dari pemanggilan tool tadi dipakai untuk ...
+
+kesempatan ini bisa kita gunakan untuk 
+mentrigger agent lain untuk bekerja.
+
+Didalam tool call bisa kita masukkan prompt lain 
+yang bentuknya permintaan juga kepada AI Agent yang lain
+
+
+
+
+
+
+
+
+
+
