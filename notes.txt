@@ -26,12 +26,7 @@ mentrigger agent lain untuk bekerja.
 Didalam tool call bisa kita masukkan prompt lain 
 yang bentuknya permintaan juga kepada AI Agent yang lain
 
-
-
-
-
-
-
+selamat belajar
 
 
 
