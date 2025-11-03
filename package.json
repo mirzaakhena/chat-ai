@@ -13,9 +13,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "@uiw/react-json-view": "^2.0.0-alpha.39",
     "next": "^16.0.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.0",
+    "recharts": "^3.3.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.16",
