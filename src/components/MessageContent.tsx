@@ -128,7 +128,7 @@ export default function MessageContent({
                     style={oneDark as any}
                     language={language}
                     PreTag="div"
-                    className="!text-xs"
+                    className="text-xs!"
                   >
                     {codeString}
                   </SyntaxHighlighter>
