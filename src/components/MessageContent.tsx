@@ -36,7 +36,7 @@ export default function MessageContent({
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          code({ node, inline, className, children, ...props }) {
+          code({ node, inline, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || "");
             const language = match ? match[1] : "";
             const codeString = String(children).replace(/\n$/, "");
@@ -125,11 +125,10 @@ export default function MessageContent({
               return (
                 <div className="my-3 rounded-lg overflow-hidden">
                   <SyntaxHighlighter
-                    style={oneDark}
+                    style={oneDark as any}
                     language={language}
                     PreTag="div"
                     className="!text-xs"
-                    {...props}
                   >
                     {codeString}
                   </SyntaxHighlighter>
@@ -147,39 +146,39 @@ export default function MessageContent({
               </code>
             );
           },
-          p({ children }) {
+          p({ children }: any) {
             return (
               <p className="text-sm leading-relaxed mb-2 last:mb-0">
                 {children}
               </p>
             );
           },
-          ul({ children }) {
+          ul({ children }: any) {
             return <ul className="list-disc list-inside mb-2 ml-2">{children}</ul>;
           },
-          ol({ children }) {
+          ol({ children }: any) {
             return <ol className="list-decimal list-inside mb-2 ml-2">{children}</ol>;
           },
-          li({ children }) {
+          li({ children }: any) {
             return <li className="text-sm mb-1">{children}</li>;
           },
-          h1({ children }) {
+          h1({ children }: any) {
             return <h1 className="text-xl font-bold mb-2 mt-4">{children}</h1>;
           },
-          h2({ children }) {
+          h2({ children }: any) {
             return <h2 className="text-lg font-bold mb-2 mt-3">{children}</h2>;
           },
-          h3({ children }) {
+          h3({ children }: any) {
             return <h3 className="text-base font-bold mb-2 mt-2">{children}</h3>;
           },
-          blockquote({ children }) {
+          blockquote({ children }: any) {
             return (
               <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-2">
                 {children}
               </blockquote>
             );
           },
-          a({ href, children }) {
+          a({ href, children }: any) {
             return (
               <a
                 href={href}
@@ -191,7 +190,7 @@ export default function MessageContent({
               </a>
             );
           },
-          table({ children }) {
+          table({ children }: any) {
             return (
               <div className="overflow-x-auto my-3">
                 <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
@@ -200,31 +199,31 @@ export default function MessageContent({
               </div>
             );
           },
-          thead({ children }) {
+          thead({ children }: any) {
             return (
               <thead className="bg-gray-200 dark:bg-gray-700">
                 {children}
               </thead>
             );
           },
-          tbody({ children }) {
+          tbody({ children }: any) {
             return <tbody>{children}</tbody>;
           },
-          tr({ children }) {
+          tr({ children }: any) {
             return (
               <tr className="border-b border-gray-300 dark:border-gray-600">
                 {children}
               </tr>
             );
           },
-          th({ children }) {
+          th({ children }: any) {
             return (
               <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left text-sm font-semibold">
                 {children}
               </th>
             );
           },
-          td({ children }) {
+          td({ children }: any) {
             return (
               <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm">
                 {children}
