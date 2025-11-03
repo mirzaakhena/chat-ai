@@ -4,6 +4,7 @@ import { useState } from "react";
 import JsonView from "@uiw/react-json-view";
 import { darkTheme } from "@uiw/react-json-view/dark";
 import { lightTheme } from "@uiw/react-json-view/light";
+import MessageContent from "./MessageContent";
 
 interface ToolMessageProps {
   thinkingMessage?: string;
@@ -43,9 +44,9 @@ export default function ToolMessage({
                       💭 THINKING
                     </span>
                   </div>
-                  <p className="text-xs leading-relaxed text-purple-900 dark:text-purple-100 italic">
-                    {thinkingMessage}
-                  </p>
+                  <div className="text-purple-900 dark:text-purple-100">
+                    <MessageContent content={thinkingMessage} className="text-xs" />
+                  </div>
                 </div>
               )}
               <div className="flex items-center justify-between">

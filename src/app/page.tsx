@@ -35,6 +35,46 @@ Here's a comparison chart of performance metrics:
 
 Would you like me to elaborate on any of these features?`;
 
+const welcomeMessage = `# Welcome to AI Chat! 👋
+
+Hello! I'm your AI assistant. How can I help you today?
+
+## What I can do:
+- Answer questions
+- Explain concepts
+- Provide code examples
+
+### Let's get started!`;
+
+const userQuestion1 = `Can you help me learn about **Next.js**?`;
+
+const introMessage = `Of course! **Next.js** is a powerful React framework that enables you to build full-stack web applications. It provides features like:
+
+- Server-side rendering
+- Static site generation
+- API routes
+- And more!
+
+Here's a simple example:
+
+\`\`\`javascript
+export default function Home() {
+  return <div>Hello World</div>
+}
+\`\`\`
+
+What specific aspect of Next.js would you like to learn about?`;
+
+const userQuestion2 = `What are the main **benefits** of using Next.js?
+
+I'm particularly interested in:
+- Performance
+- SEO capabilities`;
+
+const thinkingMessage = `I need to search the documentation for **Next.js benefits** to provide accurate information.
+
+_Preparing search query..._`;
+
 const tableAndCodeMessage = `Here's a comparison table of different React frameworks:
 
 | Framework | SSR | SSG | API Routes | Learning Curve |
@@ -82,6 +122,10 @@ export async function GET(request, { params }) {
 
 Pretty straightforward, right?`;
 
+const userQuestion3 = `Can you show me more examples with:
+- Tables
+- Code blocks with \`syntax highlighting\``;
+
 export default function Home() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
@@ -100,16 +144,16 @@ export default function Home() {
       {/* Chat Messages */}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-6 py-8">
-          <AssistantMessage message="Hello! I'm your AI assistant. How can I help you today?" />
+          <AssistantMessage message={welcomeMessage} />
 
-          <UserMessage message="Can you help me learn about Next.js?" />
+          <UserMessage message={userQuestion1} />
 
-          <AssistantMessage message="Of course! **Next.js** is a powerful React framework that enables you to build full-stack web applications. It provides features like:\n\n- Server-side rendering\n- Static site generation\n- API routes\n- And more!\n\nHere's a simple example:\n\n```javascript\nexport default function Home() {\n  return <div>Hello World</div>\n}\n```\n\nWhat specific aspect of Next.js would you like to learn about?" />
+          <AssistantMessage message={introMessage} />
 
-          <UserMessage message="What are the main benefits of using Next.js?" />
+          <UserMessage message={userQuestion2} />
 
           <ToolMessage
-            thinkingMessage="I need to search the documentation for Next.js benefits to provide accurate information."
+            thinkingMessage={thinkingMessage}
             toolCallName="searchDocumentation"
             request={{
               query: "Next.js benefits",
@@ -129,7 +173,7 @@ export default function Home() {
 
           <AssistantMessage message={chartMessage} />
 
-          <UserMessage message="Can you show me more examples with tables and code?" />
+          <UserMessage message={userQuestion3} />
 
           <AssistantMessage message={tableAndCodeMessage} />
         </div>

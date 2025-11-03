@@ -12,7 +12,7 @@ export default function InputForm() {
           />
           <button
             type="submit"
-            className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2"
+            className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition-colors duration-200 flex items-center gap-2"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
