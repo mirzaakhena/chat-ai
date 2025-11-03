@@ -60,7 +60,7 @@ export default function ToolMessage({
   return (
     <div className="flex justify-start mb-4">
       <div className="flex gap-3 max-w-[85%]">
-        <div className="shrink-0 w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+        <div className="shrink-0 w-8 h-8 bg-linear-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
           🔧
         </div>
         <div className="flex-1">
