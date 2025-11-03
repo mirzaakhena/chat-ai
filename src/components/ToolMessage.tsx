@@ -11,6 +11,7 @@ interface ToolMessageProps {
   toolCallName: string;
   request: Record<string, any>;
   response: Record<string, any>;
+  status?: "working" | "completed" | "error";
 }
 
 export default function ToolMessage({
@@ -18,10 +19,43 @@ export default function ToolMessage({
   toolCallName,
   request,
   response,
+  status = "completed",
 }: ToolMessageProps) {
   const [isToolExpanded, setIsToolExpanded] = useState(false);
   const [isRequestExpanded, setIsRequestExpanded] = useState(false);
   const [isResponseExpanded, setIsResponseExpanded] = useState(false);
+
+  const getStatusConfig = () => {
+    switch (status) {
+      case "working":
+        return {
+          icon: "⏳",
+          text: "WORKING",
+          color: "text-blue-600 dark:text-blue-400",
+          bgColor: "bg-blue-50 dark:bg-blue-900/20",
+          borderColor: "border-blue-200 dark:border-blue-800",
+        };
+      case "error":
+        return {
+          icon: "❌",
+          text: "ERROR",
+          color: "text-red-600 dark:text-red-400",
+          bgColor: "bg-red-50 dark:bg-red-900/20",
+          borderColor: "border-red-200 dark:border-red-800",
+        };
+      case "completed":
+      default:
+        return {
+          icon: "✅",
+          text: "COMPLETED",
+          color: "text-green-600 dark:text-green-400",
+          bgColor: "bg-green-50 dark:bg-green-900/20",
+          borderColor: "border-green-200 dark:border-green-800",
+        };
+    }
+  };
+
+  const statusConfig = getStatusConfig();
 
   return (
     <div className="flex justify-start mb-4">
@@ -50,9 +84,13 @@ export default function ToolMessage({
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <span className="text-amber-700 dark:text-amber-400 font-mono text-sm font-semibold">
                     {toolCallName}
+                  </span>
+                  <span className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${statusConfig.bgColor} ${statusConfig.color} border ${statusConfig.borderColor}`}>
+                    <span>{statusConfig.icon}</span>
+                    <span>{statusConfig.text}</span>
                   </span>
                 </div>
                 <svg

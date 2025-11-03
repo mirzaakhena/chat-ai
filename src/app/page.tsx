@@ -155,6 +155,7 @@ export default function Home() {
           <ToolMessage
             thinkingMessage={thinkingMessage}
             toolCallName="searchDocumentation"
+            status="completed"
             request={{
               query: "Next.js benefits",
               source: "official-docs",
@@ -176,6 +177,36 @@ export default function Home() {
           <UserMessage message={userQuestion3} />
 
           <AssistantMessage message={tableAndCodeMessage} />
+
+          <UserMessage message="Can you fetch the latest Next.js documentation?" />
+
+          <ToolMessage
+            thinkingMessage="Fetching latest documentation from the official Next.js website..."
+            toolCallName="fetchDocumentation"
+            status="working"
+            request={{
+              url: "https://nextjs.org/docs",
+              method: "GET"
+            }}
+            response={{}}
+          />
+
+          <UserMessage message="What about performance metrics?" />
+
+          <ToolMessage
+            thinkingMessage="Attempting to retrieve performance data from the analytics API..."
+            toolCallName="getPerformanceMetrics"
+            status="error"
+            request={{
+              endpoint: "/api/analytics/performance",
+              timeRange: "last-30-days"
+            }}
+            response={{
+              error: "API_TIMEOUT",
+              message: "Request timed out after 30 seconds",
+              timestamp: "2025-11-03T11:45:00Z"
+            }}
+          />
         </div>
       </main>
 
