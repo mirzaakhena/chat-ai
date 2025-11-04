@@ -1,142 +1,306 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import UserMessage from "@/components/UserMessage";
 import AssistantMessage from "@/components/AssistantMessage";
 import InputForm from "@/components/InputForm";
 import ToolMessage from "@/components/ToolMessage";
 
-const chartMessage = `Great question! Here are the main benefits of Next.js:
-
-1. **Server-Side Rendering (SSR)** for better SEO and performance
-2. **Static Site Generation (SSG)** for blazing-fast page loads
-3. Built-in routing system with file-based routing
-4. API routes for building backend endpoints
-5. Automatic code splitting for optimal loading
-
-Here's a comparison chart of performance metrics:
-
-\`\`\`chart
-{
-  "type": "bar",
-  "data": [
-    { "name": "Next.js", "performance": 95, "seo": 98 },
-    { "name": "Create React App", "performance": 70, "seo": 65 },
-    { "name": "Gatsby", "performance": 90, "seo": 95 }
-  ],
-  "options": {
-    "xKey": "name",
-    "bars": [
-      { "dataKey": "performance", "name": "Performance", "color": "#8884d8" },
-      { "dataKey": "seo", "name": "SEO Score", "color": "#82ca9d" }
-    ]
-  }
-}
-\`\`\`
-
-Would you like me to elaborate on any of these features?`;
-
-const welcomeMessage = `# Welcome to AI Chat! 👋
-
-Hello! I'm your AI assistant. How can I help you today?
-
-## What I can do:
-- Answer questions
-- Explain concepts
-- Provide code examples
-
-### Let's get started!`;
-
-const userQuestion1 = `Can you help me learn about **Next.js**?`;
-
-const introMessage = `Of course! **Next.js** is a powerful React framework that enables you to build full-stack web applications. It provides features like:
-
-- Server-side rendering
-- Static site generation
-- API routes
-- And more!
-
-Here's a simple example:
-
-\`\`\`javascript
-export default function Home() {
-  return <div>Hello World</div>
-}
-\`\`\`
-
-What specific aspect of Next.js would you like to learn about?`;
-
-const userQuestion2 = `What are the main **benefits** of using Next.js?
-
-I'm particularly interested in:
-- Performance
-- SEO capabilities`;
-
-const thinkingMessage = `I need to search the documentation for **Next.js benefits** to provide accurate information.
-
-_Preparing search query..._`;
-
-const tableAndCodeMessage = `Here's a comparison table of different React frameworks:
-
-| Framework | SSR | SSG | API Routes | Learning Curve |
-|-----------|-----|-----|------------|----------------|
-| Next.js | ✅ | ✅ | ✅ | Medium |
-| Gatsby | ❌ | ✅ | ❌ | Medium |
-| Create React App | ❌ | ❌ | ❌ | Easy |
-| Remix | ✅ | ✅ | ✅ | High |
-
-And here's how to create a simple API route in Next.js:
-
-\`\`\`typescript
-// app/api/hello/route.ts
-import { NextResponse } from 'next/server'
-
-export async function GET(request: Request) {
-  return NextResponse.json({
-    message: 'Hello World',
-    timestamp: new Date().toISOString()
-  })
-}
-
-export async function POST(request: Request) {
-  const body = await request.json()
-  return NextResponse.json({
-    received: body,
-    status: 'success'
-  })
-}
-\`\`\`
-
-You can also create dynamic routes:
-
-\`\`\`javascript
-// app/api/users/[id]/route.js
-export async function GET(request, { params }) {
-  const userId = params.id
-
-  // Fetch user from database
-  const user = await db.users.findById(userId)
-
-  return Response.json(user)
-}
-\`\`\`
-
-Pretty straightforward, right?`;
-
-const userQuestion3 = `Can you show me more examples with:
-- Tables
-- Code blocks with \`syntax highlighting\``;
+// Message types
+type Message =
+  | { type: "user"; content: string; id: string }
+  | { type: "assistant"; content: string; id: string }
+  | {
+      type: "tool";
+      id: string;
+      thinkingMessage: string;
+      toolCallName: string;
+      request: Record<string, any>;
+      response: Record<string, any>;
+      status: "working" | "completed" | "error";
+    };
 
 export default function Home() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    setInput("");
+    setIsLoading(true);
+
+    // Add user message
+    const userMessageId = `user-${Date.now()}`;
+    setMessages((prev) => [
+      ...prev,
+      { type: "user", content: userMessage, id: userMessageId },
+    ]);
+
+    // Create abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    try {
+      // Build message history for API (convert our message format to API format)
+      const apiMessages = messages
+        .filter((m) => m.type === "user" || m.type === "assistant")
+        .map((m) => ({
+          role: m.type === "user" ? "user" : "assistant",
+          content: m.content,
+        }));
+
+      // Add the new user message
+      apiMessages.push({ role: "user", content: userMessage });
+
+      // Send request to API with full conversation history
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: apiMessages,
+        }),
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No reader available");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      // Track current assistant message and tool calls
+      let currentAssistantMessage = "";
+      let currentAssistantMessageId = `assistant-${Date.now()}`;
+
+      // Track current tool call
+      let currentToolCall: {
+        id: string;
+        thinkingMessage: string;
+        toolCallName: string;
+        request: Record<string, any>;
+        response: Record<string, any>;
+        status: "working" | "completed" | "error";
+      } | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim() || !line.startsWith("data: ")) continue;
+
+          try {
+            const jsonStr = line.slice(6); // Remove "data: " prefix
+            const event = JSON.parse(jsonStr);
+
+            // Debug logging
+            console.log("📥 Received event:", event.type, event);
+
+            // Handle different event types
+            switch (event.type) {
+              case "text-delta":
+                currentAssistantMessage += event.text;
+                setMessages((prev) => {
+                  const filtered = prev.filter((m) => m.id !== currentAssistantMessageId);
+                  return [
+                    ...filtered,
+                    {
+                      type: "assistant",
+                      content: currentAssistantMessage,
+                      id: currentAssistantMessageId,
+                    },
+                  ];
+                });
+                break;
+
+              case "tool-input-start":
+                // Start a new tool call
+                currentToolCall = {
+                  id: `tool-${Date.now()}-${event.id}`,
+                  thinkingMessage: "", // Keep empty as user requested
+                  toolCallName: event.toolName,
+                  request: {},
+                  response: {},
+                  status: "working",
+                };
+                break;
+
+              case "tool-input-delta":
+                // Skip - user doesn't want thinking message populated
+                break;
+
+              case "tool-call":
+                // Tool call with full parameters
+                if (currentToolCall) {
+                  currentToolCall.toolCallName = event.toolName;
+                  currentToolCall.request = event.input || {};
+
+                  // Save reference for callback
+                  const activeToolCall = { ...currentToolCall };
+                  // Add or update tool message
+                  setMessages((prev) => {
+                    const filtered = prev.filter((m) => m.id !== activeToolCall.id);
+                    return [
+                      ...filtered,
+                      {
+                        type: "tool",
+                        id: activeToolCall.id,
+                        thinkingMessage: activeToolCall.thinkingMessage,
+                        toolCallName: activeToolCall.toolCallName,
+                        request: activeToolCall.request,
+                        response: activeToolCall.response,
+                        status: activeToolCall.status,
+                      },
+                    ];
+                  });
+                }
+                break;
+
+              case "tool-result":
+                // Tool execution completed
+                if (currentToolCall) {
+                  try {
+                    currentToolCall.response = JSON.parse(event.result);
+                  } catch {
+                    currentToolCall.response = { result: event.result };
+                  }
+                  currentToolCall.status = "completed";
+
+                  // Save reference before setting to null
+                  const completedToolCall = { ...currentToolCall };
+                  setMessages((prev) => {
+                    const filtered = prev.filter((m) => m.id !== completedToolCall.id);
+                    return [
+                      ...filtered,
+                      {
+                        type: "tool",
+                        id: completedToolCall.id,
+                        thinkingMessage: completedToolCall.thinkingMessage,
+                        toolCallName: completedToolCall.toolCallName,
+                        request: completedToolCall.request,
+                        response: completedToolCall.response,
+                        status: completedToolCall.status,
+                      },
+                    ];
+                  });
+                  currentToolCall = null;
+                }
+                break;
+
+              case "tool-error":
+                // Tool execution failed
+                if (currentToolCall) {
+                  currentToolCall.response = event.error || { error: "Unknown error" };
+                  currentToolCall.status = "error";
+
+                  // Save reference before setting to null
+                  const failedToolCall = { ...currentToolCall };
+                  setMessages((prev) => {
+                    const filtered = prev.filter((m) => m.id !== failedToolCall.id);
+                    return [
+                      ...filtered,
+                      {
+                        type: "tool",
+                        id: failedToolCall.id,
+                        thinkingMessage: failedToolCall.thinkingMessage,
+                        toolCallName: failedToolCall.toolCallName,
+                        request: failedToolCall.request,
+                        response: failedToolCall.response,
+                        status: failedToolCall.status,
+                      },
+                    ];
+                  });
+                  currentToolCall = null;
+                }
+                break;
+
+              case "finish-step":
+                // Step completed, reset assistant message for next step
+                if (currentAssistantMessage) {
+                  currentAssistantMessage = "";
+                  currentAssistantMessageId = `assistant-${Date.now()}`;
+                }
+                break;
+
+              case "finish":
+                // Conversation finished
+                break;
+
+              default:
+                // Ignore other event types
+                break;
+            }
+          } catch (error) {
+            console.error("Error parsing event:", error, line);
+          }
+        }
+      }
+    } catch (error) {
+      // Check if it was aborted
+      if (error instanceof Error && error.name === "AbortError") {
+        console.log("Request aborted by user");
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "assistant",
+            content: "⚠️ Request stopped by user.",
+            id: `abort-${Date.now()}`,
+          },
+        ]);
+      } else {
+        console.error("Error:", error);
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "assistant",
+            content: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+            id: `error-${Date.now()}`,
+          },
+        ]);
+      }
+    } finally {
+      abortControllerRef.current = null;
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 shadow-sm">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Chat AI
+            BPA Operational Analysis Chat
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            AI-powered chat assistant
+            AI-powered complaint analysis with Notion & Elasticsearch integration
           </p>
         </div>
       </header>
@@ -144,74 +308,72 @@ export default function Home() {
       {/* Chat Messages */}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-6 py-8">
-          <AssistantMessage message={welcomeMessage} />
+          {messages.length === 0 && (
+            <AssistantMessage message={`# Welcome to BPA Operational Analysis! 👋
 
-          <UserMessage message={userQuestion1} />
+I'm your AI assistant for investigating BPA (Blockchain-based Port Automation) operational issues.
 
-          <AssistantMessage message={introMessage} />
+## What I can do:
+- Query **Notion** complaints database
+- Analyze **Elasticsearch** transaction logs
+- Correlate complaints with technical errors
+- Provide detailed investigation reports
 
-          <UserMessage message={userQuestion2} />
+### Example queries:
+- "Pilih satu data komplain yang bertipe technical 3 hari yang lalu"
+- "Cek komplain CALL-21566"
+- "Analisa transaksi untuk kendaraan 부산99사9474"
 
-          <ToolMessage
-            thinkingMessage={thinkingMessage}
-            toolCallName="searchDocumentation"
-            status="completed"
-            request={{
-              query: "Next.js benefits",
-              source: "official-docs",
-              limit: 10
-            }}
-            response={{
-              status: "success",
-              results: [
-                { title: "Server-Side Rendering", relevance: 0.95 },
-                { title: "Static Site Generation", relevance: 0.92 },
-                { title: "Built-in Routing", relevance: 0.88 }
-              ],
-              totalFound: 15
-            }}
-          />
+Ask me anything about BPA operations!`} />
+          )}
 
-          <AssistantMessage message={chartMessage} />
+          {messages.map((message) => {
+            if (message.type === "user") {
+              return <UserMessage key={message.id} message={message.content} />;
+            } else if (message.type === "assistant") {
+              return <AssistantMessage key={message.id} message={message.content} />;
+            } else if (message.type === "tool") {
+              return (
+                <ToolMessage
+                  key={message.id}
+                  thinkingMessage={message.thinkingMessage}
+                  toolCallName={message.toolCallName}
+                  request={message.request}
+                  response={message.response}
+                  status={message.status}
+                />
+              );
+            }
+            return null;
+          })}
 
-          <UserMessage message={userQuestion3} />
+          {isLoading && messages[messages.length - 1]?.type !== "assistant" && (
+            <div className="flex justify-start mb-4">
+              <div className="flex gap-3 max-w-[70%]">
+                <div className="shrink-0 w-8 h-8 bg-linear-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                  AI
+                </div>
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 shadow-md">
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <div className="animate-pulse">Thinking...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-          <AssistantMessage message={tableAndCodeMessage} />
-
-          <UserMessage message="Can you fetch the latest Next.js documentation?" />
-
-          <ToolMessage
-            thinkingMessage="Fetching latest documentation from the official Next.js website..."
-            toolCallName="fetchDocumentation"
-            status="working"
-            request={{
-              url: "https://nextjs.org/docs",
-              method: "GET"
-            }}
-            response={{}}
-          />
-
-          <UserMessage message="What about performance metrics?" />
-
-          <ToolMessage
-            thinkingMessage="Attempting to retrieve performance data from the analytics API..."
-            toolCallName="getPerformanceMetrics"
-            status="error"
-            request={{
-              endpoint: "/api/analytics/performance",
-              timeRange: "last-30-days"
-            }}
-            response={{
-              error: "API_TIMEOUT",
-              message: "Request timed out after 30 seconds",
-              timestamp: "2025-11-03T11:45:00Z"
-            }}
-          />
+          <div ref={messagesEndRef} />
         </div>
       </main>
 
       {/* Input Form */}
-      <InputForm />
+      <InputForm
+        input={input}
+        setInput={setInput}
+        handleSubmit={handleSubmit}
+        handleStop={handleStop}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 export {
-  elasticsearchTransactionTool,
-  elasticsearchKubeEventTool
+  elasticsearchTransactionTool
 } from './elasticsearch';
 
 export {

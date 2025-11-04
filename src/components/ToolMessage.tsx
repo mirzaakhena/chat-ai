@@ -7,7 +7,7 @@ import { lightTheme } from "@uiw/react-json-view/light";
 import MessageContent from "./MessageContent";
 
 interface ToolMessageProps {
-  thinkingMessage?: string;
+  thinkingMessage?: string; // Optional, will be hidden if empty
   toolCallName: string;
   request: Record<string, any>;
   response: Record<string, any>;
@@ -66,23 +66,11 @@ export default function ToolMessage({
         <div className="flex-1">
           {/* Tool Call Card */}
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg overflow-hidden">
-            {/* Thinking Message + Tool Call Name */}
+            {/* Tool Call Name (no thinking message) */}
             <button
               onClick={() => setIsToolExpanded(!isToolExpanded)}
               className="w-full px-4 py-3 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
             >
-              {thinkingMessage && (
-                <div className="mb-2 text-left">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-purple-600 dark:text-purple-400 text-xs font-semibold">
-                      💭 THINKING
-                    </span>
-                  </div>
-                  <div className="text-purple-900 dark:text-purple-100">
-                    <MessageContent content={thinkingMessage} className="text-xs" />
-                  </div>
-                </div>
-              )}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-amber-700 dark:text-amber-400 font-mono text-sm font-semibold">

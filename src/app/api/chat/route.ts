@@ -1,5 +1,5 @@
 import { openrouter } from '@openrouter/ai-sdk-provider';
-import { stepCountIs, streamText, pipeDataStreamToResponse } from 'ai';
+import { stepCountIs, streamText } from 'ai';
 import { config } from '@/lib/config';
 import {
   elasticsearchTransactionTool,
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     // This will help us understand the response structure
     const stream = result.fullStream;
 
-    // Create a readable stream that encodes events as JSON
+    // Create a readable stream that encodes events as SSE (Server-Sent Events)
     const encoder = new TextEncoder();
     const readable = new ReadableStream({
       async start(controller) {
@@ -65,8 +65,8 @@ export async function POST(req: Request) {
             // Log all events to server console for observation
             console.log('📦 Stream event:', JSON.stringify(chunk, null, 2));
 
-            // Send event to client as JSON lines
-            const data = JSON.stringify(chunk) + '\n';
+            // Send event to client as SSE format: "data: {json}\n"
+            const data = `data: ${JSON.stringify(chunk)}\n`;
             controller.enqueue(encoder.encode(data));
           }
           controller.close();
@@ -79,8 +79,9 @@ export async function POST(req: Request) {
 
     return new Response(readable, {
       headers: {
-        'Content-Type': 'application/x-ndjson',
-        'Transfer-Encoding': 'chunked',
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
       },
     });
   } catch (error: any) {

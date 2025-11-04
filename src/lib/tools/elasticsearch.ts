@@ -20,7 +20,7 @@ Retention: Depends on Fluentd health (check kube-events if logs missing)
 Primary correlation: service_key wildcard "*_{vehicle_number}_*" from Notion
 Time strategy: Use reception_time as upper bound, issue occurs BEFORE complaint`,
 
-  parameters: z.object({
+  inputSchema: z.object({
     query: z.any().describe(`Elasticsearch DSL query object`),
     size: z.number().optional().describe('Result count (default: 10)'),
     from: z.number().optional().describe('Starting offset for pagination'),

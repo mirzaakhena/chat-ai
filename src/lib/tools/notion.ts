@@ -13,7 +13,7 @@ Common query patterns:
 
 Primary use: Extract vehicle_number (PRIMARY KEY), reception_time (time upper bound), and terminals for downstream correlation.`,
 
-  parameters: z.object({
+  inputSchema: z.object({
     filter: z.any().optional().describe('Notion filter using English property names (auto-converted to Korean)'),
     sorts: z.any().optional().describe('Sort by English property names'),
     start_cursor: z.string().optional().describe('Pagination cursor from previous response'),
@@ -40,7 +40,7 @@ Primary use: Extract vehicle_number (PRIMARY KEY), reception_time (time upper bo
 export const notionGetSchemaTool = {
   description: `Get database schema with field types and valid options. Use to discover valid values for complaint_type, terminals, detailed_complaint_types, processing_status, etc.`,
 
-  parameters: z.object({
+  inputSchema: z.object({
     field: z.string().optional().describe('Optional field name filter (e.g., "complaint_type", "terminals")'),
   }),
 
