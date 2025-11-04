@@ -13,15 +13,21 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ai-sdk/react": "^2.0.87",
+    "@notionhq/client": "^2.2.15",
+    "@openrouter/ai-sdk-provider": "^1.2.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@uiw/react-json-view": "^2.0.0-alpha.39",
+    "ai": "^5.0.87",
+    "axios": "^1.13.1",
     "next": "^16.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^16.1.0",
     "recharts": "^3.3.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.16",
