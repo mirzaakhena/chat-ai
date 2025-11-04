@@ -1,9 +1,10 @@
-# Chat AI - Next.js Application
+# BPA Operational Analysis Chat - Next.js AI Application
 
-Aplikasi chat AI interaktif yang dibangun dengan Next.js, menampilkan antarmuka chat yang modern dengan dukungan markdown, syntax highlighting, rendering chart, dan visualisasi tool execution.
+Aplikasi chat AI interaktif untuk analisis operasional BPA (Blockchain-based Port Automation) di Pelabuhan Busan, Korea. Dibangun dengan Next.js, AI SDK, dan integrasi dengan Notion dan Elasticsearch untuk investigasi komplain teknis.
 
-## Features
+## 🚀 Features
 
+### Frontend
 - **Rich Message Rendering** - Dukungan penuh untuk markdown dengan GitHub Flavored Markdown (GFM)
 - **Syntax Highlighting** - Code blocks dengan syntax highlighting menggunakan Prism
 - **Chart Visualization** - Render charts (line, bar, pie) langsung dalam pesan menggunakan Recharts
@@ -11,10 +12,124 @@ Aplikasi chat AI interaktif yang dibangun dengan Next.js, menampilkan antarmuka 
 - **JSON Viewer** - Interactive JSON viewer untuk request/response data
 - **Dark Mode Support** - Tema gelap dan terang
 - **Responsive Design** - Layout yang responsif untuk berbagai ukuran layar
+- **Real-time Streaming** - Server-Sent Events (SSE) untuk streaming response word-by-word
+- **Stop Button** - Kemampuan untuk membatalkan request yang sedang berjalan
 
-## Getting Started
+### Backend
+- **AI SDK Integration** - Vercel AI SDK v5 dengan streaming support dan multi-step execution (up to 20 steps)
+- **OpenRouter Integration** - LLM provider menggunakan Claude Sonnet 4.5 via OpenRouter
+- **Notion API** - Query complaints database untuk investigasi operasional
+- **Elasticsearch** - Query transaction logs (fluentd-bpa.log-*) untuk analisis teknis
+- **Tool Calling** - Autonomous multi-step tool execution dengan intelligent correlation
+- **System Prompt** - Expert methodology untuk BPA operational analysis
+- **TypeScript** - Full type safety dengan Zod schema validation
 
-Jalankan development server:
+## 🏗️ Backend Architecture
+
+### Multi-Step Execution Flow
+```
+User Query → AI Agent → Tool Selection → Tool Execution → Result Analysis → Response
+     ↓                                           ↓
+     └──────────────────────────────────────────┘
+              (Up to 20 iterative steps)
+```
+
+### Investigation Methodology
+1. **Notion Query** - Extract complaint details (vehicle_number, reception_time, terminals)
+2. **Elasticsearch Search** - Find transaction logs using vehicle-centric correlation
+3. **Analysis** - Identify errors, patterns, and root causes
+4. **Report** - Generate timeline and recommendations
+
+### Tool Correlation Strategy
+```
+Notion Complaint
+  ↓ Extract: vehicle_number (PRIMARY KEY)
+  ↓ Extract: reception_time (UPPER BOUND)
+  ↓
+Elasticsearch Query
+  ↓ service_key: "*_{vehicle_number}_*" (wildcard)
+  ↓ @timestamp: start_of_day to reception_time
+  ↓
+Analysis & Report
+```
+
+## 📁 Project Structure
+
+```
+chat-ai/
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── chat/
+│   │   │       └── route.ts        # Streaming API endpoint with SSE
+│   │   ├── globals.css             # Global styles dengan Tailwind directives
+│   │   ├── layout.tsx              # Root layout component
+│   │   └── page.tsx                # Chat interface dengan streaming integration
+│   ├── components/
+│   │   ├── AssistantMessage.tsx    # Komponen untuk pesan AI
+│   │   ├── UserMessage.tsx         # Komponen untuk pesan user
+│   │   ├── ToolMessage.tsx         # Komponen untuk tool execution display
+│   │   ├── MessageContent.tsx      # Core renderer untuk markdown, code, charts
+│   │   └── InputForm.tsx           # Form input dengan stop button support
+│   └── lib/
+│       ├── clients/
+│       │   ├── elasticsearch.ts    # Elasticsearch client & query utilities
+│       │   └── notion.ts           # Notion client & complaint formatter
+│       ├── tools/
+│       │   ├── elasticsearch.ts    # Elasticsearch tool definition
+│       │   ├── notion.ts           # Notion tool definitions
+│       │   └── index.ts            # Tool exports
+│       ├── config.ts               # Environment configuration
+│       ├── constants.ts            # Application constants
+│       └── systemPrompt.ts         # BPA operational analysis expert prompt
+├── .env.example                    # Environment variables template
+├── .gitignore                      # Git ignore rules
+├── next.config.js                  # Next.js configuration
+├── package.json                    # Project dependencies dan scripts
+├── postcss.config.js               # PostCSS configuration
+├── tailwind.config.ts              # Tailwind CSS configuration
+└── tsconfig.json                   # TypeScript configuration
+```
+
+## ⚙️ Environment Setup
+
+1. **Copy environment template:**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Configure environment variables:**
+
+   ```env
+   # OpenRouter Configuration
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   OPENROUTER_MODEL=anthropic/claude-sonnet-4.5
+
+   # Elasticsearch Configuration
+   ELASTICSEARCH_URL=https://your-elasticsearch-url:9200
+   ELASTICSEARCH_USERNAME=your_username
+   ELASTICSEARCH_PASSWORD=your_password
+   ELASTICSEARCH_DEFAULT_TIMESTAMP_FIELD=@timestamp
+
+   # Notion Configuration
+   NOTION_TOKEN=your_notion_integration_token
+   NOTION_DATABASE_ID=your_database_id
+   ```
+
+3. **Get API Keys:**
+   - **OpenRouter**: Sign up at [openrouter.ai](https://openrouter.ai)
+   - **Notion**: Create integration at [notion.so/my-integrations](https://www.notion.so/my-integrations)
+   - **Elasticsearch**: Get credentials from your cluster admin
+
+## 🚦 Getting Started
+
+### Installation
+
+```bash
+npm install
+```
+
+### Development
 
 ```bash
 npm run dev
@@ -24,32 +139,196 @@ Buka [http://localhost:3000](http://localhost:3000) di browser untuk melihat apl
 
 Edit halaman dengan memodifikasi `src/app/page.tsx`. Halaman akan auto-update saat file diedit.
 
-## Project Structure
+### Production Build
 
-```
-chat-ai/
-├── src/
-│   ├── app/
-│   │   ├── globals.css       # Global styles dengan Tailwind directives
-│   │   ├── layout.tsx         # Root layout component
-│   │   └── page.tsx           # Home page dengan demo messages
-│   └── components/
-│       ├── AssistantMessage.tsx    # Komponen untuk pesan AI
-│       ├── UserMessage.tsx         # Komponen untuk pesan user
-│       ├── ToolMessage.tsx         # Komponen untuk tool execution display
-│       ├── MessageContent.tsx      # Core renderer untuk markdown, code, charts
-│       └── InputForm.tsx           # Form input untuk mengirim pesan
-├── public/                    # Static files
-├── .eslintrc.json            # ESLint configuration
-├── .gitignore                # Git ignore rules
-├── next.config.js            # Next.js configuration
-├── package.json              # Project dependencies dan scripts
-├── postcss.config.js         # PostCSS configuration
-├── tailwind.config.ts        # Tailwind CSS configuration
-└── tsconfig.json             # TypeScript configuration
+```bash
+npm run build
+npm start
 ```
 
-## Components
+## 🔧 API Routes
+
+### POST /api/chat
+
+Endpoint untuk streaming chat dengan AI.
+
+**Request:**
+```typescript
+{
+  messages: Array<{
+    role: "user" | "assistant" | "system";
+    content: string;
+  }>;
+}
+```
+
+**Response:** Server-Sent Events (SSE) stream
+
+**Event Types:**
+- `text-delta` - Streaming text chunks
+- `tool-call` - Tool execution started
+- `tool-result` - Tool execution completed
+- `tool-error` - Tool execution failed
+- `finish-step` - Step completed
+- `finish` - Conversation finished
+
+**Example:**
+```javascript
+const response = await fetch("/api/chat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    messages: [
+      { role: "user", content: "Pilih satu komplain technical hari ini" }
+    ]
+  })
+});
+
+const reader = response.body.getReader();
+// Parse SSE stream...
+```
+
+## 🛠️ Available Tools
+
+### 1. notion_query_complaints
+
+Query BPA user complaints database.
+
+**Input Schema:**
+```typescript
+{
+  filter?: any;      // Notion filter object
+  sorts?: any;       // Sort configuration
+  start_cursor?: string;  // Pagination cursor
+  page_size?: number;     // Results per page (default: 10)
+}
+```
+
+**Output:**
+```typescript
+{
+  results: Array<{
+    id: string;
+    call_id: string;
+    vehicle_number: string;
+    reception_time: string;
+    complaint_type: string;
+    terminals: string[];
+    // ... other fields
+  }>;
+  has_more: boolean;
+  next_cursor?: string;
+}
+```
+
+**Example Usage:**
+```typescript
+// Query by call_id
+{
+  filter: {
+    property: "call_id",
+    unique_id: { equals: 21197 }
+  }
+}
+
+// Query by date range
+{
+  filter: {
+    and: [
+      { property: "complaint_type", select: { equals: "장애" } },
+      { property: "reception_time", date: { on_or_after: "2025-11-03" } }
+    ]
+  }
+}
+```
+
+### 2. notion_get_schema
+
+Get database schema with field types and valid options.
+
+**Output:**
+```typescript
+{
+  database_id: string;
+  fields: Array<{
+    name: string;
+    type: string;
+    options?: string[];
+  }>;
+}
+```
+
+### 3. elasticsearch_transaction_query
+
+Query BPA transaction logs (fluentd-bpa.log-*).
+
+**Input Schema:**
+```typescript
+{
+  query: any;       // Elasticsearch DSL query
+  size?: number;    // Number of results (default: 10)
+  from?: number;    // Pagination offset
+  sort?: any;       // Sort configuration
+  _source?: any;    // Field filtering
+  aggs?: any;       // Aggregations
+}
+```
+
+**Example Usage:**
+```typescript
+// Vehicle-centric search
+{
+  query: {
+    bool: {
+      must: [
+        { wildcard: { "service_key.keyword": "*_부산99사7744_*" } },
+        {
+          range: {
+            "@timestamp": {
+              gte: "2025-11-03T00:00:00.000Z",
+              lte: "2025-11-03T06:27:00.000Z"
+            }
+          }
+        }
+      ]
+    }
+  },
+  _source: { excludes: ["log_data"] },
+  size: 100,
+  sort: [{ "@timestamp": "asc" }]
+}
+```
+
+## 📦 Tech Stack
+
+### Core Framework
+- **Next.js 16** - React framework dengan App Router
+- **React 19** - UI library
+- **TypeScript** - Type safety
+
+### AI & Backend
+- **Vercel AI SDK 5.0.87** - AI SDK untuk streaming dan tool calling
+- **OpenRouter** - LLM provider untuk Claude Sonnet 4.5
+- **Zod 3.24.1** - Schema validation
+
+### Data Sources
+- **@notionhq/client 2.2.15** - Notion API client
+- **@elastic/elasticsearch 8.16.1** - Elasticsearch client
+- **axios 1.7.8** - HTTP client
+
+### Styling & UI
+- **Tailwind CSS 4** - Utility-first CSS framework
+- **react-markdown** - Markdown rendering
+- **remark-gfm** - GitHub Flavored Markdown support
+- **react-syntax-highlighter** - Syntax highlighting untuk code blocks
+- **recharts** - Chart library untuk visualisasi data
+- **@uiw/react-json-view** - JSON viewer untuk tool messages
+
+### Development
+- **ESLint** - Code linting
+- **PostCSS** - CSS processing
+
+## 💡 Components
 
 ### AssistantMessage
 Menampilkan pesan dari AI assistant dengan:
@@ -65,11 +344,10 @@ Menampilkan pesan dari user dengan:
 
 ### ToolMessage
 Menampilkan detail eksekusi tool dengan:
-- Thinking message (opsional)
 - Tool call name
-- Status indicator (working/completed/error)
+- Status indicator (working/completed/error) dengan color coding
 - Expandable request/response dengan JSON viewer
-- Color coding berdasarkan status
+- Real-time status updates
 
 ### MessageContent
 Core component yang menangani rendering:
@@ -80,32 +358,13 @@ Core component yang menangani rendering:
 - **Inline Code** - Code formatting untuk inline code
 
 ### InputForm
-Form input sederhana untuk mengirim pesan:
-- Textarea untuk input
-- Send button dengan icon
+Form input untuk mengirim pesan:
+- Textarea dengan keyboard shortcuts (Enter to send, Shift+Enter for new line)
+- Toggle button: Send (blue) / Stop (red)
 - Responsive layout
+- AbortController support untuk cancel requests
 
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build untuk production
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
-
-## Tech Stack
-
-- **Next.js 16** - React framework dengan App Router
-- **React 19** - UI library
-- **TypeScript** - Type safety
-- **Tailwind CSS 4** - Utility-first CSS framework
-- **react-markdown** - Markdown rendering
-- **remark-gfm** - GitHub Flavored Markdown support
-- **react-syntax-highlighter** - Syntax highlighting untuk code blocks
-- **recharts** - Chart library untuk visualisasi data
-- **@uiw/react-json-view** - JSON viewer untuk tool messages
-- **ESLint** - Code linting
-
-## Chart Syntax
+## 📊 Chart Syntax
 
 MessageContent mendukung custom chart syntax menggunakan code block dengan language `chart`:
 
@@ -131,13 +390,66 @@ Supported chart types:
 - `bar` - Bar chart
 - `pie` - Pie chart
 
-## Learn More
+## 🎯 Example Queries
 
-Untuk mempelajari lebih lanjut tentang teknologi yang digunakan:
+### Query Complaints
+```
+Pilih satu data komplain yang bertipe technical 3 hari yang lalu
+```
 
+### Investigate Specific Complaint
+```
+Cek komplain CALL-21566
+```
+
+### Analyze Transaction Logs
+```
+Analisa transaksi untuk kendaraan 부산99사9474
+```
+
+## 🐛 Troubleshooting
+
+### Tool Results Not Displaying
+- Check that `.env` file is configured correctly
+- Verify Notion integration has access to the database
+- Check Elasticsearch credentials and network connectivity
+- Look at browser console for frontend errors
+- Check server logs for backend errors
+
+### Streaming Not Working
+- Ensure Next.js is running in development mode (`npm run dev`)
+- Check browser console for SSE connection errors
+- Verify API route is responding (check Network tab)
+
+### Notion API Errors
+- Verify `NOTION_TOKEN` is correct
+- Ensure database is shared with integration
+- Check `NOTION_DATABASE_ID` matches your database
+
+## 📚 Learn More
+
+### Documentation
 - [Next.js Documentation](https://nextjs.org/docs)
-- [Learn Next.js](https://nextjs.org/learn)
+- [Vercel AI SDK](https://sdk.vercel.ai/docs)
+- [OpenRouter Documentation](https://openrouter.ai/docs)
+- [Notion API](https://developers.notion.com/)
+- [Elasticsearch Documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
 - [TypeScript Documentation](https://www.typescriptlang.org/docs)
+
+### Technologies
 - [React Markdown](https://github.com/remarkjs/react-markdown)
 - [Recharts Documentation](https://recharts.org/)
+- [Zod Schema Validation](https://zod.dev/)
+
+## 🤝 Contributing
+
+This is a specialized application for BPA operational analysis. For questions or contributions, please contact the development team.
+
+## 📝 License
+
+Copyright © 2025 BPA Operations Team
+
+---
+
+🤖 Built with [Claude Code](https://claude.com/claude-code)
