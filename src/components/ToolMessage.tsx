@@ -3,11 +3,8 @@
 import { useState } from "react";
 import JsonView from "@uiw/react-json-view";
 import { darkTheme } from "@uiw/react-json-view/dark";
-import { lightTheme } from "@uiw/react-json-view/light";
-import MessageContent from "./MessageContent";
 
 interface ToolMessageProps {
-  thinkingMessage?: string; // Optional, will be hidden if empty
   toolCallName: string;
   request: Record<string, any>;
   response: Record<string, any>;
@@ -15,7 +12,6 @@ interface ToolMessageProps {
 }
 
 export default function ToolMessage({
-  thinkingMessage,
   toolCallName,
   request,
   response,

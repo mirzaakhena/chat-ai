@@ -37,6 +37,9 @@ export async function POST(req: Request) {
       ...messages,
     ];
 
+    // Track tool results globally to inject into stream
+    const globalToolResults = new Map<string, any>();
+
     // Create streaming response with tools and multi-step support
     const result = streamText({
       model: openrouter(config.openrouter.model),
@@ -49,6 +52,22 @@ export async function POST(req: Request) {
         notion_get_schema: notionGetSchemaTool,
         // Elasticsearch tools
         elasticsearch_transaction_query: elasticsearchTransactionTool,
+      },
+      // Capture tool results using callback
+      onStepFinish: async (event) => {
+        console.log('🎯 Step finished:', event.finishReason);
+        if (event.toolCalls && event.toolResults) {
+          for (let i = 0; i < event.toolCalls.length; i++) {
+            const toolCall = event.toolCalls[i];
+            const toolResult = event.toolResults[i];
+            console.log('💾 Saving tool result:', {
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+              resultPreview: JSON.stringify(toolResult).substring(0, 200),
+            });
+            globalToolResults.set(toolCall.toolCallId, toolResult);
+          }
+        }
       },
     });
 
@@ -64,6 +83,64 @@ export async function POST(req: Request) {
           for await (const chunk of stream) {
             // Log all events to server console for observation
             console.log('📦 Stream event:', JSON.stringify(chunk, null, 2));
+
+            // Intercept tool-call events to track tool execution
+            if (chunk.type === 'tool-call') {
+              console.log('🔧 Tool called:', chunk.toolName, 'with ID:', chunk.toolCallId);
+
+              // Send tool-call event to client
+              const data = `data: ${JSON.stringify(chunk)}\n`;
+              controller.enqueue(encoder.encode(data));
+              continue;
+            }
+
+            // CRITICAL: Handle tool-result events
+            if (chunk.type === 'tool-result') {
+              console.log('✅ Tool result event received for ID:', chunk.toolCallId);
+              console.log('📦 Result content:', JSON.stringify(chunk.output, null, 2));
+
+              // Ensure we send a proper result to client
+              const enhancedChunk = {
+                type: 'tool-result',
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+                result: chunk.output || 'Tool executed successfully',
+              };
+
+              console.log('📤 Sending enhanced tool-result to client:', JSON.stringify(enhancedChunk, null, 2));
+
+              const data = `data: ${JSON.stringify(enhancedChunk)}\n`;
+              controller.enqueue(encoder.encode(data));
+              continue;
+            }
+
+            // CRITICAL: Inject tool results after finish-step
+            if (chunk.type === 'finish-step' && chunk.finishReason === 'tool-calls') {
+              console.log('🏁 Step finished with tool calls, checking for results...');
+
+              // First send the finish-step event
+              const data = `data: ${JSON.stringify(chunk)}\n`;
+              controller.enqueue(encoder.encode(data));
+
+              // Then inject tool results from globalToolResults
+              // Wait a bit for onStepFinish to populate globalToolResults
+              await new Promise(resolve => setTimeout(resolve, 100));
+
+              for (const [toolCallId, result] of globalToolResults) {
+                console.log('💉 Injecting tool result for:', toolCallId);
+                const syntheticEvent = {
+                  type: 'tool-result',
+                  toolCallId: toolCallId,
+                  result: result,
+                };
+                const resultData = `data: ${JSON.stringify(syntheticEvent)}\n`;
+                controller.enqueue(encoder.encode(resultData));
+              }
+
+              // Clear after injecting
+              globalToolResults.clear();
+              continue;
+            }
 
             // Send event to client as SSE format: "data: {json}\n"
             const data = `data: ${JSON.stringify(chunk)}\n`;

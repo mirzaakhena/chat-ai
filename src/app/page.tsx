@@ -13,7 +13,6 @@ type Message =
   | {
       type: "tool";
       id: string;
-      thinkingMessage: string;
       toolCallName: string;
       request: Record<string, any>;
       response: Record<string, any>;
@@ -98,7 +97,6 @@ export default function Home() {
       // Track current tool call
       let currentToolCall: {
         id: string;
-        thinkingMessage: string;
         toolCallName: string;
         request: Record<string, any>;
         response: Record<string, any>;
@@ -120,8 +118,15 @@ export default function Home() {
             const jsonStr = line.slice(6); // Remove "data: " prefix
             const event = JSON.parse(jsonStr);
 
-            // Debug logging
-            console.log("📥 Received event:", event.type, event);
+            // Debug logging (only for specific events)
+            if (event.type === "tool-result" || event.type === "tool-call" || event.type === "tool-error") {
+              console.log("📥 Tool event:", event.type, {
+                toolName: event.toolName,
+                toolCallId: event.toolCallId,
+                hasResult: "result" in event,
+                resultPreview: event.result ? JSON.stringify(event.result).substring(0, 100) : "N/A",
+              });
+            }
 
             // Handle different event types
             switch (event.type) {
@@ -144,7 +149,6 @@ export default function Home() {
                 // Start a new tool call
                 currentToolCall = {
                   id: `tool-${Date.now()}-${event.id}`,
-                  thinkingMessage: "", // Keep empty as user requested
                   toolCallName: event.toolName,
                   request: {},
                   response: {},
@@ -172,7 +176,6 @@ export default function Home() {
                       {
                         type: "tool",
                         id: activeToolCall.id,
-                        thinkingMessage: activeToolCall.thinkingMessage,
                         toolCallName: activeToolCall.toolCallName,
                         request: activeToolCall.request,
                         response: activeToolCall.response,
@@ -186,11 +189,37 @@ export default function Home() {
               case "tool-result":
                 // Tool execution completed
                 if (currentToolCall) {
-                  try {
-                    currentToolCall.response = JSON.parse(event.result);
-                  } catch {
-                    currentToolCall.response = { result: event.result };
+                  // Handle different result types
+                  let resultData;
+
+                  if (event.result === undefined || event.result === null) {
+                    resultData = { result: "No data returned" };
+                  } else if (typeof event.result === "string") {
+                    try {
+                      // Try parsing as JSON
+                      resultData = JSON.parse(event.result);
+                    } catch {
+                      // If not JSON, wrap in object
+                      resultData = { result: event.result };
+                    }
+                  } else if (typeof event.result === "object") {
+                    // CRITICAL: AI SDK wraps tool results in nested structure
+                    // Extract the actual output from result.output
+                    if (event.result.output) {
+                      resultData = event.result.output;
+                    } else if (event.result.result) {
+                      // Fallback: some tools might have result.result
+                      resultData = event.result.result;
+                    } else {
+                      // Use the entire result object
+                      resultData = event.result;
+                    }
+                  } else {
+                    // Other types (number, boolean, etc)
+                    resultData = { result: event.result };
                   }
+
+                  currentToolCall.response = resultData;
                   currentToolCall.status = "completed";
 
                   // Save reference before setting to null
@@ -202,7 +231,6 @@ export default function Home() {
                       {
                         type: "tool",
                         id: completedToolCall.id,
-                        thinkingMessage: completedToolCall.thinkingMessage,
                         toolCallName: completedToolCall.toolCallName,
                         request: completedToolCall.request,
                         response: completedToolCall.response,
@@ -217,7 +245,17 @@ export default function Home() {
               case "tool-error":
                 // Tool execution failed
                 if (currentToolCall) {
-                  currentToolCall.response = event.error || { error: "Unknown error" };
+                  // Check if error object is empty or has meaningful content
+                  const errorObj = event.error || {};
+                  const hasContent = Object.keys(errorObj).length > 0;
+
+                  currentToolCall.response = hasContent
+                    ? errorObj
+                    : {
+                        error: "Tool execution failed",
+                        message: "The tool encountered an error during execution. Check server logs for details.",
+                        toolCallId: event.toolCallId
+                      };
                   currentToolCall.status = "error";
 
                   // Save reference before setting to null
@@ -229,7 +267,6 @@ export default function Home() {
                       {
                         type: "tool",
                         id: failedToolCall.id,
-                        thinkingMessage: failedToolCall.thinkingMessage,
                         toolCallName: failedToolCall.toolCallName,
                         request: failedToolCall.request,
                         response: failedToolCall.response,
@@ -336,7 +373,6 @@ Ask me anything about BPA operations!`} />
               return (
                 <ToolMessage
                   key={message.id}
-                  thinkingMessage={message.thinkingMessage}
                   toolCallName={message.toolCallName}
                   request={message.request}
                   response={message.response}
