@@ -2,18 +2,23 @@ import { parseToolResult, parseToolError } from "./toolResultParser";
 import type { Message } from "./messageFormatter";
 
 /**
+ * Tool call state
+ */
+export interface ToolCallState {
+  id: string;
+  toolCallName: string;
+  request: Record<string, any>;
+  response: Record<string, any>;
+  status: "working" | "completed" | "error";
+}
+
+/**
  * State interface for stream processing
  */
 export interface StreamState {
   currentAssistantMessage: string;
   currentAssistantMessageId: string;
-  currentToolCall: {
-    id: string;
-    toolCallName: string;
-    request: Record<string, any>;
-    response: Record<string, any>;
-    status: "working" | "completed" | "error";
-  } | null;
+  activeToolCalls: Map<string, ToolCallState>; // Support multiple parallel tools
 }
 
 /**
@@ -28,7 +33,7 @@ export function createInitialStreamState(): StreamState {
   return {
     currentAssistantMessage: "",
     currentAssistantMessageId: `assistant-${Date.now()}`,
-    currentToolCall: null,
+    activeToolCalls: new Map(),
   };
 }
 
@@ -62,13 +67,14 @@ export function handleToolInputStartEvent(
   event: any,
   state: StreamState
 ): void {
-  state.currentToolCall = {
-    id: `tool-${Date.now()}-${event.id}`,
-    toolCallName: event.toolName,
+  const toolCallId = event.id || event.toolCallId;
+  state.activeToolCalls.set(toolCallId, {
+    id: `tool-${Date.now()}-${toolCallId}`,
+    toolCallName: event.toolName || "",
     request: {},
     response: {},
     status: "working",
-  };
+  });
 }
 
 /**
@@ -79,13 +85,19 @@ export function handleToolCallEvent(
   state: StreamState,
   setMessages: MessageUpdater
 ): void {
-  if (!state.currentToolCall) return;
+  const toolCallId = event.id || event.toolCallId;
+  const toolCall = state.activeToolCalls.get(toolCallId);
 
-  state.currentToolCall.toolCallName = event.toolName;
-  state.currentToolCall.request = event.input || {};
+  if (!toolCall) {
+    console.warn("⚠️ tool-call event for unknown tool:", toolCallId);
+    return;
+  }
+
+  toolCall.toolCallName = event.toolName;
+  toolCall.request = event.input || {};
 
   // Save reference for callback
-  const activeToolCall = { ...state.currentToolCall };
+  const activeToolCall = { ...toolCall };
 
   // Add or update tool message
   setMessages((prev) => {
@@ -112,16 +124,22 @@ export function handleToolResultEvent(
   state: StreamState,
   setMessages: MessageUpdater
 ): void {
-  if (!state.currentToolCall) return;
+  const toolCallId = event.toolCallId;
+  const toolCall = state.activeToolCalls.get(toolCallId);
+
+  if (!toolCall) {
+    console.warn("⚠️ tool-result event for unknown tool:", toolCallId);
+    return;
+  }
 
   // Parse the result using utility function
   const resultData = parseToolResult(event.result);
 
-  state.currentToolCall.response = resultData;
-  state.currentToolCall.status = "completed";
+  toolCall.response = resultData;
+  toolCall.status = "completed";
 
-  // Save reference before setting to null
-  const completedToolCall = { ...state.currentToolCall };
+  // Save reference before removing from map
+  const completedToolCall = { ...toolCall };
 
   setMessages((prev) => {
     const filtered = prev.filter((m) => m.id !== completedToolCall.id);
@@ -138,7 +156,8 @@ export function handleToolResultEvent(
     ];
   });
 
-  state.currentToolCall = null;
+  // Remove from active tools
+  state.activeToolCalls.delete(toolCallId);
 }
 
 /**
@@ -149,16 +168,22 @@ export function handleToolErrorEvent(
   state: StreamState,
   setMessages: MessageUpdater
 ): void {
-  if (!state.currentToolCall) return;
+  const toolCallId = event.toolCallId;
+  const toolCall = state.activeToolCalls.get(toolCallId);
+
+  if (!toolCall) {
+    console.warn("⚠️ tool-error event for unknown tool:", toolCallId);
+    return;
+  }
 
   // Parse the error using utility function
   const errorData = parseToolError(event.error, event.toolCallId);
 
-  state.currentToolCall.response = errorData;
-  state.currentToolCall.status = "error";
+  toolCall.response = errorData;
+  toolCall.status = "error";
 
-  // Save reference before setting to null
-  const failedToolCall = { ...state.currentToolCall };
+  // Save reference before removing from map
+  const failedToolCall = { ...toolCall };
 
   setMessages((prev) => {
     const filtered = prev.filter((m) => m.id !== failedToolCall.id);
@@ -175,7 +200,8 @@ export function handleToolErrorEvent(
     ];
   });
 
-  state.currentToolCall = null;
+  // Remove from active tools
+  state.activeToolCalls.delete(toolCallId);
 }
 
 /**

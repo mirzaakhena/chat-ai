@@ -128,6 +128,48 @@ function MessageContent({ content, className = "" }: MessageContentProps) {
 
         // Handle chart rendering
         if (language === "chart") {
+          // Check if JSON is potentially incomplete (still streaming)
+          const trimmed = codeString.trim();
+
+          // Skip rendering if empty or clearly incomplete
+          if (!trimmed || trimmed === "undefined") {
+            return (
+              <div className="my-3 p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded text-xs border border-amber-200 dark:border-amber-800 flex items-center gap-2">
+                <span className="animate-pulse">📊</span>
+                <span>Chart data streaming...</span>
+              </div>
+            );
+          }
+
+          // Check for basic JSON completeness (matching braces)
+          const openBraces = (trimmed.match(/\{/g) || []).length;
+          const closeBraces = (trimmed.match(/\}/g) || []).length;
+          const isLikelyIncomplete = openBraces !== closeBraces;
+
+          if (isLikelyIncomplete) {
+            return (
+              <div className="my-3 space-y-2">
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded text-xs border border-amber-200 dark:border-amber-800 flex items-center gap-2">
+                  <span className="animate-pulse">📊</span>
+                  <span>Chart data streaming...</span>
+                </div>
+                <div className="rounded-lg overflow-hidden">
+                  <div className="bg-gray-700 px-3 py-1 text-xs text-gray-300">
+                    Preview:
+                  </div>
+                  <SyntaxHighlighter
+                    style={oneDark as any}
+                    language="json"
+                    PreTag="div"
+                    className="text-xs!"
+                  >
+                    {codeString}
+                  </SyntaxHighlighter>
+                </div>
+              </div>
+            );
+          }
+
           try {
             const chartData = JSON.parse(codeString) as ChartData;
             return <ChartRenderer chartData={chartData} />;
