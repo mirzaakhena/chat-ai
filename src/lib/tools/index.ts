@@ -6,3 +6,7 @@ export {
   notionQueryComplaintsTool,
   notionGetSchemaTool
 } from './notion';
+
+export {
+  prometheusNodeTool
+} from './prometheus';

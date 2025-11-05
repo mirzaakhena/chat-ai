@@ -9,6 +9,9 @@ import {
   notionGetSchemaTool,
 } from '@/lib/tools/notion';
 import {
+  prometheusNodeTool,
+} from '@/lib/tools/prometheus';
+import {
   validateChatRequest,
   prepareMessagesWithSystemPrompt,
   createErrorResponse,
@@ -51,6 +54,8 @@ export async function POST(req: Request) {
         notion_get_schema: notionGetSchemaTool,
         // Elasticsearch tools
         elasticsearch_transaction_query: elasticsearchTransactionTool,
+        // Prometheus tools
+        prometheus_node_query: prometheusNodeTool,
       },
       // Capture tool results using callback
       onStepFinish: createOnStepFinishCallback(globalToolResults),

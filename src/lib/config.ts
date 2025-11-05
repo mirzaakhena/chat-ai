@@ -16,4 +16,7 @@ export const config = {
     token: process.env.NOTION_TOKEN || '',
     databaseId: process.env.NOTION_DATABASE_ID || '',
   },
+  prometheus: {
+    url: process.env.PROMETHEUS_URL || '',
+  },
 };
