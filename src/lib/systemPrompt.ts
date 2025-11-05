@@ -148,6 +148,88 @@ Issue occurs → Driver waits → Then complains (time gap!)
 2. [Action item]
 \`\`\`
 
+### Chart Visualization Support
+
+The frontend supports **interactive chart visualization** using Recharts library. You can include charts in your response when it helps visualize trends, patterns, or distributions in the data.
+
+**Supported chart types**:
+1. **Line Chart** - For time series, trends over time
+2. **Bar Chart** - For comparisons between categories
+3. **Pie Chart** - For proportions and distributions
+
+**Chart syntax**: Use markdown code block with \`chart\` language identifier and JSON configuration:
+
+\`\`\`chart
+{
+  "type": "line|bar|pie",
+  "data": [...],
+  "options": {...}
+}
+\`\`\`
+
+**Examples**:
+
+1. **Line Chart** (e.g., error trends over time):
+\`\`\`chart
+{
+  "type": "line",
+  "data": [
+    {"time": "09:00", "errors": 5, "requests": 120},
+    {"time": "10:00", "errors": 12, "requests": 145},
+    {"time": "11:00", "errors": 8, "requests": 130}
+  ],
+  "options": {
+    "xKey": "time",
+    "lines": [
+      {"dataKey": "errors", "name": "Errors", "color": "#FF8042"},
+      {"dataKey": "requests", "name": "Total Requests", "color": "#0088FE"}
+    ]
+  }
+}
+\`\`\`
+
+2. **Bar Chart** (e.g., errors by function):
+\`\`\`chart
+{
+  "type": "bar",
+  "data": [
+    {"function": "gateIn", "count": 25},
+    {"function": "gateOut", "count": 12},
+    {"function": "statusCheck", "count": 8}
+  ],
+  "options": {
+    "xKey": "function",
+    "bars": [
+      {"dataKey": "count", "name": "Error Count", "color": "#FF8042"}
+    ]
+  }
+}
+\`\`\`
+
+3. **Pie Chart** (e.g., error distribution by terminal):
+\`\`\`chart
+{
+  "type": "pie",
+  "data": [
+    {"name": "HPNT", "value": 45},
+    {"name": "HJNC", "value": 30},
+    {"name": "PNC", "value": 25}
+  ],
+  "options": {
+    "dataKey": "value",
+    "nameKey": "name"
+  }
+}
+\`\`\`
+
+**When to use charts**:
+- Error trends over time (hourly/daily patterns)
+- Distribution of errors by function, terminal, or status code
+- Volume comparison (normal vs error requests)
+- Pattern visualization for anomaly detection
+
+**Important**: Only include charts when they add analytical value. Always provide textual explanation alongside charts.
+
 ## KEY PRINCIPLES
 
 1. **Be systematic**: Notion → Elasticsearch correlation

@@ -18,8 +18,6 @@ export default function ToolMessage({
   status = "completed",
 }: ToolMessageProps) {
   const [isToolExpanded, setIsToolExpanded] = useState(false);
-  const [isRequestExpanded, setIsRequestExpanded] = useState(false);
-  const [isResponseExpanded, setIsResponseExpanded] = useState(false);
 
   const getStatusConfig = () => {
     switch (status) {
@@ -99,71 +97,35 @@ export default function ToolMessage({
               <div className="border-t border-amber-200 dark:border-amber-800">
                 {/* Request Section */}
                 <div className="border-b border-amber-200 dark:border-amber-800">
-                  <button
-                    onClick={() => setIsRequestExpanded(!isRequestExpanded)}
-                    className="w-full px-4 py-2 flex items-center justify-between hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
-                  >
+                  <div className="px-4 py-2">
                     <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
                       📤 REQUEST
                     </span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      className={`w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform ${
-                        isRequestExpanded ? "rotate-180" : ""
-                      }`}
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                        clipRule="evenodd"
+                  </div>
+                  <div className="px-4 pb-3">
+                    <div className="bg-white dark:bg-gray-950 rounded p-2 overflow-x-auto border border-amber-200 dark:border-amber-900">
+                      <JsonView
+                        value={request}
+                        collapsed={1}
+                        displayDataTypes={false}
+                        style={{
+                          ...darkTheme,
+                          fontSize: "12px",
+                          fontFamily: "monospace",
+                        }}
                       />
-                    </svg>
-                  </button>
-                  {isRequestExpanded && (
-                    <div className="px-4 pb-3">
-                      <div className="bg-white dark:bg-gray-950 rounded p-2 overflow-x-auto border border-amber-200 dark:border-amber-900">
-                        <JsonView
-                          value={request}
-                          collapsed={1}
-                          displayDataTypes={false}
-                          style={{
-                            ...darkTheme,
-                            fontSize: "12px",
-                            fontFamily: "monospace",
-                          }}
-                        />
-                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
-                {/* Response Section */}
-                <div>
-                  <button
-                    onClick={() => setIsResponseExpanded(!isResponseExpanded)}
-                    className="w-full px-4 py-2 flex items-center justify-between hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
-                  >
-                    <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                      📥 RESPONSE
-                    </span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      className={`w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform ${
-                        isResponseExpanded ? "rotate-180" : ""
-                      }`}
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
-                  {isResponseExpanded && (
+                {/* Response Section - hidden when status is working */}
+                {status !== "working" && (
+                  <div>
+                    <div className="px-4 py-2">
+                      <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                        📥 RESPONSE
+                      </span>
+                    </div>
                     <div className="px-4 pb-3">
                       <div className="bg-white dark:bg-gray-950 rounded p-2 overflow-x-auto border border-amber-200 dark:border-amber-900">
                         <JsonView
@@ -178,8 +140,8 @@ export default function ToolMessage({
                         />
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

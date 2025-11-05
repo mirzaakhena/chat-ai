@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import UserMessage from "@/components/UserMessage";
 import AssistantMessage from "@/components/AssistantMessage";
 import InputForm from "@/components/InputForm";
@@ -10,12 +10,6 @@ import { useChatStream } from "./hooks/useChatStream";
 export default function Home() {
   const { messages, isLoading, sendMessage, stopStreaming } = useChatStream();
   const [input, setInput] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   const handleStop = () => {
     stopStreaming();
@@ -101,8 +95,6 @@ Ask me anything about BPA operations!`} />
               </div>
             </div>
           )}
-
-          <div ref={messagesEndRef} />
         </div>
       </main>
 
