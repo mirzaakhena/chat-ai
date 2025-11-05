@@ -8,7 +8,16 @@ import {
   notionQueryComplaintsTool,
   notionGetSchemaTool,
 } from '@/lib/tools/notion';
-import { generateBPASystemPrompt } from '@/lib/systemPrompt';
+import {
+  validateChatRequest,
+  prepareMessagesWithSystemPrompt,
+  createErrorResponse,
+  handleToolCallEvent,
+  handleToolResultEvent,
+  handleFinishStepEvent,
+  handleGenericEvent,
+  createOnStepFinishCallback,
+} from './helpers';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes for long-running queries
@@ -18,24 +27,14 @@ export async function POST(req: Request) {
     const { messages } = await req.json();
 
     // Validate messages
-    if (!messages || !Array.isArray(messages)) {
-      return new Response(
-        JSON.stringify({ error: 'Messages array is required' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+    try {
+      validateChatRequest(messages);
+    } catch (error: any) {
+      return createErrorResponse(error.message, 400);
     }
 
-    // Generate system prompt with current time context
-    const systemPrompt = generateBPASystemPrompt();
-
     // Prepend system message to messages
-    const messagesWithSystem = [
-      { role: 'system' as const, content: systemPrompt },
-      ...messages,
-    ];
+    const messagesWithSystem = prepareMessagesWithSystemPrompt(messages);
 
     // Track tool results globally to inject into stream
     const globalToolResults = new Map<string, any>();
@@ -54,21 +53,7 @@ export async function POST(req: Request) {
         elasticsearch_transaction_query: elasticsearchTransactionTool,
       },
       // Capture tool results using callback
-      onStepFinish: async (event) => {
-        console.log('🎯 Step finished:', event.finishReason);
-        if (event.toolCalls && event.toolResults) {
-          for (let i = 0; i < event.toolCalls.length; i++) {
-            const toolCall = event.toolCalls[i];
-            const toolResult = event.toolResults[i];
-            console.log('💾 Saving tool result:', {
-              toolCallId: toolCall.toolCallId,
-              toolName: toolCall.toolName,
-              resultPreview: JSON.stringify(toolResult).substring(0, 200),
-            });
-            globalToolResults.set(toolCall.toolCallId, toolResult);
-          }
-        }
-      },
+      onStepFinish: createOnStepFinishCallback(globalToolResults),
     });
 
     // For now, use fullStream to get all events including tool calls
@@ -84,67 +69,24 @@ export async function POST(req: Request) {
             // Log all events to server console for observation
             console.log('📦 Stream event:', JSON.stringify(chunk, null, 2));
 
-            // Intercept tool-call events to track tool execution
+            // Handle different event types
             if (chunk.type === 'tool-call') {
-              console.log('🔧 Tool called:', chunk.toolName, 'with ID:', chunk.toolCallId);
-
-              // Send tool-call event to client
-              const data = `data: ${JSON.stringify(chunk)}\n`;
-              controller.enqueue(encoder.encode(data));
+              handleToolCallEvent(chunk, controller, encoder);
               continue;
             }
 
-            // CRITICAL: Handle tool-result events
             if (chunk.type === 'tool-result') {
-              console.log('✅ Tool result event received for ID:', chunk.toolCallId);
-              console.log('📦 Result content:', JSON.stringify(chunk.output, null, 2));
-
-              // Ensure we send a proper result to client
-              const enhancedChunk = {
-                type: 'tool-result',
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-                result: chunk.output || 'Tool executed successfully',
-              };
-
-              console.log('📤 Sending enhanced tool-result to client:', JSON.stringify(enhancedChunk, null, 2));
-
-              const data = `data: ${JSON.stringify(enhancedChunk)}\n`;
-              controller.enqueue(encoder.encode(data));
+              handleToolResultEvent(chunk, controller, encoder);
               continue;
             }
 
-            // CRITICAL: Inject tool results after finish-step
             if (chunk.type === 'finish-step' && chunk.finishReason === 'tool-calls') {
-              console.log('🏁 Step finished with tool calls, checking for results...');
-
-              // First send the finish-step event
-              const data = `data: ${JSON.stringify(chunk)}\n`;
-              controller.enqueue(encoder.encode(data));
-
-              // Then inject tool results from globalToolResults
-              // Wait a bit for onStepFinish to populate globalToolResults
-              await new Promise(resolve => setTimeout(resolve, 100));
-
-              for (const [toolCallId, result] of globalToolResults) {
-                console.log('💉 Injecting tool result for:', toolCallId);
-                const syntheticEvent = {
-                  type: 'tool-result',
-                  toolCallId: toolCallId,
-                  result: result,
-                };
-                const resultData = `data: ${JSON.stringify(syntheticEvent)}\n`;
-                controller.enqueue(encoder.encode(resultData));
-              }
-
-              // Clear after injecting
-              globalToolResults.clear();
+              await handleFinishStepEvent(chunk, controller, globalToolResults, encoder);
               continue;
             }
 
-            // Send event to client as SSE format: "data: {json}\n"
-            const data = `data: ${JSON.stringify(chunk)}\n`;
-            controller.enqueue(encoder.encode(data));
+            // Handle generic events
+            handleGenericEvent(chunk, controller, encoder);
           }
           controller.close();
         } catch (error) {
@@ -163,15 +105,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error('Error in chat API:', error);
-    return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        details: error.message,
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return createErrorResponse('Internal server error', 500, error.message);
   }
 }

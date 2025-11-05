@@ -86,24 +86,12 @@ Issue occurs → Driver waits → Then complains (time gap!)
 
 ### Notion Date Filters
 \`\`\`json
-// ✅ CORRECT - Separate conditions in 'and' array
 {
   "filter": {
     "and": [
       {"property": "reception_time", "date": {"on_or_after": "2025-10-20"}},
       {"property": "reception_time", "date": {"on_or_before": "2025-10-27"}}
     ]
-  }
-}
-
-// ❌ WRONG - Multiple operators in one object
-{
-  "filter": {
-    "property": "reception_time",
-    "date": {
-      "on_or_after": "2025-10-20",
-      "on_or_before": "2025-10-27"  // NOT SUPPORTED!
-    }
   }
 }
 \`\`\`
