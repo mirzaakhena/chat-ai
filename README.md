@@ -20,6 +20,7 @@ Aplikasi chat AI interaktif untuk analisis operasional BPA (Blockchain-based Por
 - **OpenRouter Integration** - LLM provider menggunakan Claude Sonnet 4.5 via OpenRouter
 - **Notion API** - Query complaints database untuk investigasi operasional
 - **Elasticsearch** - Query transaction logs (fluentd-bpa.log-*) untuk analisis teknis
+- **Prometheus** - Monitor server infrastructure metrics (Node Exporter) untuk CPU, memory, disk, network
 - **Tool Calling** - Autonomous multi-step tool execution dengan intelligent correlation
 - **System Prompt** - Expert methodology untuk BPA operational analysis
 - **TypeScript** - Full type safety dengan Zod schema validation
@@ -37,8 +38,9 @@ User Query → AI Agent → Tool Selection → Tool Execution → Result Analysi
 ### Investigation Methodology
 1. **Notion Query** - Extract complaint details (vehicle_number, reception_time, terminals)
 2. **Elasticsearch Search** - Find transaction logs using vehicle-centric correlation
-3. **Analysis** - Identify errors, patterns, and root causes
-4. **Report** - Generate timeline and recommendations
+3. **Prometheus Monitoring** - Check server metrics (CPU, memory, load) during error timeframe
+4. **Analysis** - Identify errors, patterns, and root causes (application vs infrastructure)
+5. **Report** - Generate timeline and recommendations
 
 ### Tool Correlation Strategy
 ```
@@ -49,6 +51,10 @@ Notion Complaint
 Elasticsearch Query
   ↓ service_key: "*_{vehicle_number}_*" (wildcard)
   ↓ @timestamp: start_of_day to reception_time
+  ↓
+Prometheus Query (if errors found)
+  ↓ Check: CPU, memory, load during error timeframe
+  ↓ Correlate: Infrastructure issues with transaction errors
   ↓
 Analysis & Report
 ```
@@ -74,10 +80,12 @@ chat-ai/
 │   └── lib/
 │       ├── clients/
 │       │   ├── elasticsearch.ts    # Elasticsearch client & query utilities
-│       │   └── notion.ts           # Notion client & complaint formatter
+│       │   ├── notion.ts           # Notion client & complaint formatter
+│       │   └── prometheus.ts       # Prometheus client & PromQL queries
 │       ├── tools/
 │       │   ├── elasticsearch.ts    # Elasticsearch tool definition
 │       │   ├── notion.ts           # Notion tool definitions
+│       │   ├── prometheus.ts       # Prometheus Node Exporter tool
 │       │   └── index.ts            # Tool exports
 │       ├── config.ts               # Environment configuration
 │       ├── constants.ts            # Application constants
@@ -111,6 +119,9 @@ chat-ai/
    ELASTICSEARCH_PASSWORD=your_password
    ELASTICSEARCH_DEFAULT_TIMESTAMP_FIELD=@timestamp
 
+   # Prometheus Configuration
+   PROMETHEUS_URL=https://your-prometheus-url
+
    # Notion Configuration
    NOTION_TOKEN=your_notion_integration_token
    NOTION_DATABASE_ID=your_database_id
@@ -120,6 +131,7 @@ chat-ai/
    - **OpenRouter**: Sign up at [openrouter.ai](https://openrouter.ai)
    - **Notion**: Create integration at [notion.so/my-integrations](https://www.notion.so/my-integrations)
    - **Elasticsearch**: Get credentials from your cluster admin
+   - **Prometheus**: Get server URL from your infrastructure team
 
 ## 🚦 Getting Started
 
@@ -299,6 +311,59 @@ Query BPA transaction logs (fluentd-bpa.log-*).
 }
 ```
 
+### 4. prometheus_node_query
+
+Query server infrastructure metrics via Prometheus Node Exporter.
+
+**Input Schema:**
+```typescript
+{
+  query: string;    // PromQL query string
+  time?: string;    // [INSTANT] Evaluation timestamp (Unix or RFC3339)
+  timeout?: string; // Query timeout (e.g., "30s", "1m")
+  start?: string;   // [RANGE] Start time (RFC3339 UTC or Unix)
+  end?: string;     // [RANGE] End time
+  step?: string;    // [RANGE] Resolution (e.g., "1m", "5m")
+}
+```
+
+**Output:**
+```typescript
+{
+  success: boolean;
+  data: {
+    resultType: string;
+    result: Array<{
+      metric: Record<string, string>;
+      value?: [number, string];       // Instant query
+      values?: Array<[number, string]>; // Range query
+    }>;
+  };
+  status: string;
+}
+```
+
+**Example Usage:**
+```typescript
+// Instant query - Current CPU usage
+{
+  query: "100 - (avg(rate(node_cpu_seconds_total{mode='idle'}[5m])) * 100)"
+}
+
+// Range query - Memory usage over time
+{
+  query: "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+  start: "2025-11-03T00:00:00Z",
+  end: "2025-11-03T06:00:00Z",
+  step: "5m"
+}
+
+// Check specific server load
+{
+  query: "node_load1{instance='10.188.0.10:9200'}"
+}
+```
+
 ## 📦 Tech Stack
 
 ### Core Framework
@@ -314,7 +379,7 @@ Query BPA transaction logs (fluentd-bpa.log-*).
 ### Data Sources
 - **@notionhq/client 2.2.15** - Notion API client
 - **@elastic/elasticsearch 8.16.1** - Elasticsearch client
-- **axios 1.7.8** - HTTP client
+- **axios 1.7.8** - HTTP client (for Prometheus queries)
 
 ### Styling & UI
 - **Tailwind CSS 4** - Utility-first CSS framework
@@ -405,6 +470,11 @@ Cek komplain CALL-21566
 ### Analyze Transaction Logs
 ```
 Analisa transaksi untuk kendaraan 부산99사9474
+```
+
+### Monitor Server Metrics
+```
+Cek CPU dan memory usage server bpa-orderer1 saat jam 2 siang
 ```
 
 ## 🐛 Troubleshooting

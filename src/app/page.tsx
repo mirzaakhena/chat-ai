@@ -39,7 +39,7 @@ export default function Home() {
             BPA Operational Analysis Chat
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            AI-powered complaint analysis with Notion & Elasticsearch integration
+            AI-powered complaint analysis with Notion, Elasticsearch & Prometheus integration
           </p>
         </div>
       </header>
@@ -55,13 +55,15 @@ I'm your AI assistant for investigating BPA (Blockchain-based Port Automation) o
 ## What I can do:
 - Query **Notion** complaints database
 - Analyze **Elasticsearch** transaction logs
-- Correlate complaints with technical errors
+- Monitor **Prometheus** server metrics (Node Exporter)
+- Correlate complaints with technical errors and infrastructure issues
 - Provide detailed investigation reports
 
 ### Example queries:
 - "Pilih satu data komplain yang bertipe technical 3 hari yang lalu"
 - "Cek komplain CALL-21566"
 - "Analisa transaksi untuk kendaraan 부산99사9474"
+- "Cek CPU dan memory usage server 1 jam yang lalu"
 
 Ask me anything about BPA operations!`} />
           )}
